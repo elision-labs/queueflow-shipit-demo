@@ -1,0 +1,3 @@
+# The generated Python SDK from the sibling checkout. pip resolves editable
+# paths against the CWD; install from the repo root (as the Makefile does).
+-e ../queueflow-sdk-python

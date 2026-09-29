@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Ship-It Dispatch Office</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --concrete: #e4e5e1; --label: #ffffff; --ink: #16181d; --ink-soft: #5c6066;
+    --line: #c6c7c0; --safety: #ff5a1f; --stamp-blue: #1d49c9; --stamp-red: #c22c1c; --stamp-gray: #8a8d93;
+    --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    --display: "Archivo Black", "Arial Black", system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--concrete); color: var(--ink); font-family: system-ui, -apple-system, sans-serif; font-size: 14px; }
+  :focus-visible { outline: 3px solid var(--safety); outline-offset: 2px; }
+  .wrap { max-width: 1060px; margin: 0 auto; padding: 0 20px 80px; }
+
+  header { padding: 30px 0 0; }
+  .wordmark { font-family: var(--display); font-size: clamp(26px, 4.5vw, 40px); margin: 0; text-transform: uppercase; }
+  .wordmark small { display: block; font-family: var(--mono); font-size: 11px; font-weight: 500; letter-spacing: 0.28em; color: var(--ink-soft); margin-top: 5px; }
+  .hazard { height: 10px; margin-top: 14px; background: repeating-linear-gradient(-45deg, var(--safety) 0 14px, var(--ink) 14px 28px); }
+  .head-row { display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 12px; }
+  .back { font-family: var(--mono); font-size: 13px; font-weight: 600; text-decoration: none; border: 1.5px solid var(--ink); background: var(--label); padding: 8px 14px; box-shadow: 3px 3px 0 var(--ink); color: var(--ink); }
+  .back:hover { background: var(--ink); color: var(--label); }
+
+  section { margin-top: 34px; }
+  h2 { font-family: var(--mono); font-size: 13px; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase; border-bottom: 1.5px solid var(--ink); padding-bottom: 8px; display: flex; justify-content: space-between; align-items: baseline; }
+  h2 .note { font-weight: 400; letter-spacing: 0; text-transform: none; color: var(--ink-soft); font-size: 12px; }
+
+  .counters { display: flex; gap: 0; flex-wrap: wrap; border: 1.5px solid var(--ink); background: var(--label); box-shadow: 5px 5px 0 var(--ink); }
+  .counter { flex: 1 1 120px; padding: 14px 16px; border-right: 1px dashed var(--line); }
+  .counter:last-child { border-right: 0; }
+  .counter .v { font-family: var(--mono); font-size: 24px; font-weight: 600; }
+  .counter .k { font-family: var(--mono); font-size: 10px; letter-spacing: 0.16em; color: var(--ink-soft); text-transform: uppercase; margin-top: 2px; }
+
+  table { width: 100%; border-collapse: collapse; background: var(--label); border: 1.5px solid var(--ink); box-shadow: 5px 5px 0 var(--ink); font-family: var(--mono); font-size: 12.5px; }
+  th { text-align: left; font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-soft); padding: 10px 12px; border-bottom: 1.5px solid var(--ink); font-weight: 600; }
+  td { padding: 9px 12px; border-bottom: 1px dashed var(--line); vertical-align: top; }
+  tr:last-child td { border-bottom: 0; }
+  td.err { color: var(--stamp-red); max-width: 300px; }
+  .empty { color: var(--ink-soft); font-family: var(--mono); font-size: 12.5px; padding: 14px; }
+
+  .chip { display: inline-block; font-family: var(--mono); font-size: 10.5px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; border: 1.5px solid currentColor; border-radius: 3px; padding: 1px 7px; }
+  .chip.completed { color: var(--stamp-blue); }
+  .chip.failed, .chip.cancelled { color: var(--stamp-red); }
+  .chip.running { color: var(--safety); }
+  .chip.retrying { color: var(--safety); border-style: dashed; }
+  .chip.pending { color: var(--ink-soft); border-style: dashed; }
+
+  .filters { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0; font-family: var(--mono); font-size: 12px; }
+  .filters button { font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.06em; text-transform: uppercase; border: 1.5px solid var(--ink); background: var(--label); padding: 4px 10px; cursor: pointer; }
+  .filters button[aria-pressed="true"] { background: var(--ink); color: var(--label); }
+
+  button.act { font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; border: 1.5px solid var(--ink); background: var(--safety); padding: 4px 10px; cursor: pointer; box-shadow: 2px 2px 0 var(--ink); }
+  button.act:hover { transform: translate(1px,1px); box-shadow: 1px 1px 0 var(--ink); }
+  button.act.quiet { background: var(--label); }
+  button.act:disabled { background: var(--line); cursor: default; box-shadow: none; }
+
+  .loadmore { margin-top: 12px; }
+  .toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: var(--ink); color: var(--label); font-family: var(--mono); font-size: 13px; padding: 10px 18px; display: none; }
+  .scroll { overflow-x: auto; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="head-row">
+      <h1 class="wordmark">Dispatch Office<small>SHIP-IT OPERATIONS — LIVE FROM THE ENGINE</small></h1>
+      <a class="back" href="/">← Storefront</a>
+    </div>
+    <div class="hazard" role="presentation"></div>
+  </header>
+
+  <section>
+    <h2>Counters <span class="note">process-local engine stats, refreshed every 3s</span></h2>
+    <div class="counters" id="counters"></div>
+  </section>
+
+  <section>
+    <h2>Manifest <span class="note">every job, newest first — paged by keyset cursor, not OFFSET</span></h2>
+    <div class="filters" id="filters"></div>
+    <div class="scroll"><table id="jobs-table">
+      <thead><tr><th>Job</th><th>Task</th><th>Queue</th><th>Status</th><th>Attempts</th><th>Error</th></tr></thead>
+      <tbody id="jobs"></tbody>
+    </table></div>
+    <div class="loadmore"><button class="act quiet" id="more" hidden>Load next page</button></div>
+  </section>
+
+  <section>
+    <h2>Damaged parcels <span class="note">dead letters — replay creates a fresh, detached job</span></h2>
+    <div class="scroll"><table>
+      <thead><tr><th>#</th><th>Task</th><th>Reason</th><th>Error</th><th></th></tr></thead>
+      <tbody id="dlq"></tbody>
+    </table></div>
+  </section>
+
+  <section>
+    <h2>Standing routes <span class="note">cron schedules, evaluated in UTC</span></h2>
+    <div class="scroll"><table>
+      <thead><tr><th>Name</th><th>Schedule</th><th>Task</th><th>Next run</th><th>State</th><th></th></tr></thead>
+      <tbody id="crons"></tbody>
+    </table></div>
+  </section>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const when = (iso) => (iso ? new Date(iso).toLocaleTimeString() : "—");
+  let statusFilter = "";
+  let nextCursor = null;
+
+  function toast(msg) {
+    const t = $("toast");
+    t.textContent = msg;
+    t.style.display = "block";
+    clearTimeout(t._h);
+    t._h = setTimeout(() => (t.style.display = "none"), 3500);
+  }
+
+  const FILTERS = ["", "pending", "running", "retrying", "completed", "failed", "cancelled"];
+  function renderFilters() {
+    $("filters").innerHTML = FILTERS.map((f) =>
+      `<button data-f="${f}" aria-pressed="${f === statusFilter}">${f || "all"}</button>`).join("");
+    for (const b of $("filters").querySelectorAll("button")) {
+      b.addEventListener("click", () => { statusFilter = b.dataset.f; loadJobs(); });
+    }
+  }
+
+  function jobRow(j) {
+    return `<tr>
+      <td>${esc(j.id.slice(0, 8))}…</td>
+      <td>${esc(j.task)}</td>
+      <td>${esc(j.queue)}</td>
+      <td><span class="chip ${esc(j.status)}">${esc(j.status)}</span></td>
+      <td>${j.deliveries}${j.retries ? ` (${j.retries} retries)` : ""}</td>
+      <td class="err">${esc(j.error ?? "")}</td>
+    </tr>`;
+  }
+
+  async function loadJobs(append = false) {
+    const params = new URLSearchParams();
+    if (statusFilter) params.set("status", statusFilter);
+    if (append && nextCursor) params.set("cursor", nextCursor);
+    const res = await (await fetch("/api/admin/jobs?" + params)).json();
+    const rows = res.jobs.map(jobRow).join("");
+    if (append) $("jobs").insertAdjacentHTML("beforeend", rows);
+    else $("jobs").innerHTML = rows || `<tr><td colspan="6" class="empty">No jobs match. Go place an order.</td></tr>`;
+    nextCursor = res.nextCursor;
+    $("more").hidden = !nextCursor;
+    renderFilters();
+  }
+
+  async function loadDlq() {
+    const res = await (await fetch("/api/admin/dlq")).json();
+    $("dlq").innerHTML = res.deadLetters.length
+      ? res.deadLetters.map((d) => `<tr>
+          <td>${d.id}</td>
+          <td>${esc(d.task ?? "—")}</td>
+          <td>${esc(d.reason)}</td>
+          <td class="err">${esc(d.error ?? "")}</td>
+          <td>${d.replayedAs
+            ? `replayed → ${esc(d.replayedAs.slice(0, 8))}…`
+            : `<button class="act" data-replay="${d.id}">Replay</button>`}</td>
+        </tr>`).join("")
+      : `<tr><td colspan="5" class="empty">Nothing on the shelf. Order a Suspicious briefcase to change that.</td></tr>`;
+    for (const b of $("dlq").querySelectorAll("[data-replay]")) {
+      b.addEventListener("click", async () => {
+        b.disabled = true;
+        try {
+          const res = await fetch(`/api/admin/dlq/${b.dataset.replay}/replay`, { method: "POST" });
+          const body = await res.json();
+          if (!res.ok) throw new Error(body.error || res.statusText);
+          toast("Replayed as job " + body.jobId.slice(0, 8) + "…");
+          refresh();
+        } catch (err) {
+          toast("Replay refused: " + err.message);
+          b.disabled = false;
+        }
+      });
+    }
+  }
+
+  async function loadCrons() {
+    const res = await (await fetch("/api/admin/crons")).json();
+    $("crons").innerHTML = res.crons.length
+      ? res.crons.map((c) => `<tr>
+          <td>${esc(c.name)}</td>
+          <td>${esc(c.schedule)}</td>
+          <td>${esc(c.task)}</td>
+          <td>${when(c.nextRunAt)}</td>
+          <td><span class="chip ${c.enabled ? "running" : "pending"}">${c.enabled ? "active" : "paused"}</span></td>
+          <td><button class="act quiet" data-cron="${esc(c.id)}" data-action="${c.enabled ? "pause" : "resume"}">
+            ${c.enabled ? "Pause" : "Resume"}</button></td>
+        </tr>`).join("")
+      : `<tr><td colspan="6" class="empty">No standing routes registered.</td></tr>`;
+    for (const b of $("crons").querySelectorAll("[data-cron]")) {
+      b.addEventListener("click", async () => {
+        await fetch(`/api/admin/crons/${b.dataset.cron}/${b.dataset.action}`, { method: "POST" });
+        loadCrons();
+      });
+    }
+  }
+
+  async function loadStats() {
+    const s = await (await fetch("/api/admin/stats")).json();
+    const entries = [
+      ["created", s.jobs_created], ["completed", s.jobs_completed], ["retried", s.jobs_retried],
+      ["failed", s.jobs_failed], ["dead-lettered", s.jobs_dead_lettered],
+      ["workflows", s.workflows_created], ["wf done", s.workflows_completed], ["wf failed", s.workflows_failed],
+    ];
+    $("counters").innerHTML = entries.map(([k, v]) =>
+      `<div class="counter"><div class="v">${v}</div><div class="k">${k}</div></div>`).join("");
+  }
+
+  function refresh() {
+    loadStats().catch(() => {});
+    loadJobs().catch(() => {});
+    loadDlq().catch(() => {});
+    loadCrons().catch(() => {});
+  }
+
+  $("more").addEventListener("click", () => loadJobs(true).catch((e) => toast(e.message)));
+  renderFilters();
+  refresh();
+  setInterval(() => { if (!document.hidden) { loadStats().catch(() => {}); loadDlq().catch(() => {}); } }, 3000);
+</script>
+</body>
+</html>

@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Ship-It Freight &amp; Parcel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --concrete: #e4e5e1;
+    --label: #ffffff;
+    --ink: #16181d;
+    --ink-soft: #5c6066;
+    --line: #c6c7c0;
+    --safety: #ff5a1f;
+    --stamp-blue: #1d49c9;
+    --stamp-red: #c22c1c;
+    --stamp-gray: #8a8d93;
+    --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    --display: "Archivo Black", "Arial Black", system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--concrete);
+    color: var(--ink);
+    font-family: system-ui, -apple-system, sans-serif;
+    font-size: 15px;
+    line-height: 1.45;
+  }
+  a { color: var(--ink); }
+  :focus-visible { outline: 3px solid var(--safety); outline-offset: 2px; }
+
+  .wrap { max-width: 1060px; margin: 0 auto; padding: 0 20px 80px; }
+
+  /* ---- masthead ---- */
+  header.masthead { padding: 34px 0 0; }
+  .wordmark {
+    font-family: var(--display);
+    font-size: clamp(34px, 6vw, 56px);
+    letter-spacing: 0.01em;
+    line-height: 0.95;
+    margin: 0;
+    text-transform: uppercase;
+  }
+  .wordmark small { display: block; font-family: var(--mono); font-size: 12px; font-weight: 500; letter-spacing: 0.28em; color: var(--ink-soft); margin-top: 6px; }
+  .hazard {
+    height: 12px; margin: 16px 0 0;
+    background: repeating-linear-gradient(-45deg, var(--safety) 0 14px, var(--ink) 14px 28px);
+  }
+  .masthead-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  .office-link { font-family: var(--mono); font-size: 13px; font-weight: 600; text-decoration: none; border: 1.5px solid var(--ink); background: var(--label); padding: 8px 14px; box-shadow: 3px 3px 0 var(--ink); }
+  .office-link:hover { background: var(--ink); color: var(--label); }
+
+  .lede { max-width: 60ch; color: var(--ink-soft); margin: 18px 0 0; }
+  .lede b { color: var(--ink); }
+
+  /* ---- dispatch slip (shared order fields) ---- */
+  .slip { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; margin: 30px 0 14px; font-family: var(--mono); font-size: 13px; }
+  .slip label { display: flex; gap: 8px; align-items: center; }
+  .slip input[type="email"] { font-family: var(--mono); font-size: 13px; padding: 8px 10px; border: 1.5px solid var(--ink); background: var(--label); width: 240px; }
+  .slip input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--safety); }
+  .slip .hint { color: var(--ink-soft); }
+
+  /* ---- catalog: shipping-label cards ---- */
+  .catalog { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 20px; }
+  .product {
+    background: var(--label); border: 1.5px solid var(--ink);
+    box-shadow: 5px 5px 0 var(--ink);
+    padding: 16px 16px 18px; display: flex; flex-direction: column; gap: 10px;
+  }
+  .product .topline { display: flex; justify-content: space-between; align-items: center; font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; }
+  .barcode { width: 92px; height: 20px; background: repeating-linear-gradient(90deg, var(--ink) 0 2px, transparent 2px 4px, var(--ink) 4px 7px, transparent 7px 8px, var(--ink) 8px 9px, transparent 9px 12px); }
+  .product h2 { margin: 2px 0 0; font-size: 21px; line-height: 1.15; }
+  .price { font-family: var(--mono); font-size: 17px; font-weight: 600; }
+  .demo-note { border-top: 1px dashed var(--line); padding-top: 10px; font-size: 13px; color: var(--ink-soft); }
+  .demo-note .eyebrow { display: block; font-family: var(--mono); font-size: 10px; letter-spacing: 0.22em; color: var(--ink); margin-bottom: 3px; }
+  .order-row { display: flex; gap: 10px; margin-top: auto; }
+  .order-row input { width: 58px; font-family: var(--mono); font-size: 14px; padding: 8px; border: 1.5px solid var(--ink); text-align: center; }
+  button.place {
+    flex: 1; cursor: pointer; font-family: var(--mono); font-weight: 600; font-size: 13px; letter-spacing: 0.08em;
+    background: var(--safety); color: var(--ink); border: 1.5px solid var(--ink); padding: 10px 12px;
+    box-shadow: 3px 3px 0 var(--ink); text-transform: uppercase;
+  }
+  button.place:hover { transform: translate(1px, 1px); box-shadow: 2px 2px 0 var(--ink); }
+  button.place:disabled { background: var(--line); cursor: wait; }
+
+  /* ---- waybill tracker ---- */
+  .waybill { margin-top: 44px; background: var(--label); border: 1.5px solid var(--ink); box-shadow: 6px 6px 0 var(--ink); }
+  .waybill-head { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 16px 20px; border-bottom: 1.5px solid var(--ink); flex-wrap: wrap; }
+  .waybill-head .title { font-family: var(--display); font-size: 20px; letter-spacing: 0.04em; }
+  .waybill-head .order-id { font-family: var(--mono); font-size: 16px; font-weight: 600; }
+  .waybill-head .barcode { width: 140px; height: 26px; }
+
+  .stamp {
+    font-family: var(--display); text-transform: uppercase; letter-spacing: 0.06em;
+    border: 3px solid currentColor; border-radius: 4px; padding: 4px 14px;
+    transform: rotate(-6deg); opacity: 0.9; font-size: 15px; white-space: nowrap;
+  }
+  .stamp.blue { color: var(--stamp-blue); }
+  .stamp.red { color: var(--stamp-red); }
+  .stamp.gray { color: var(--stamp-gray); }
+  .stamp.orange { color: var(--safety); transform: none; border-style: dashed; animation: pulse 1.4s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity: 0.45; } }
+  @media (prefers-reduced-motion: reduce) { .stamp.orange { animation: none; } }
+
+  /* the route: DAG columns joined by dashed connectors */
+  .route { display: flex; align-items: stretch; gap: 0; overflow-x: auto; padding: 22px 20px; }
+  .col { display: flex; flex-direction: column; gap: 12px; justify-content: center; flex: 0 0 150px; min-width: 150px; }
+  .joint { flex: 0 0 20px; position: relative; min-height: 10px; }
+  .joint::before { content: ""; position: absolute; top: 50%; left: 2px; right: 2px; border-top: 2px dashed var(--ink-soft); }
+
+  .station { position: relative; border: 1.5px solid var(--ink); padding: 10px 12px 26px; background: var(--label); min-height: 96px; }
+  .station .s-name { font-family: var(--mono); font-size: 12px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; }
+  .station .s-sub { font-size: 12px; color: var(--ink-soft); margin-top: 3px; min-height: 16px; }
+  .station .s-err { font-size: 11.5px; color: var(--stamp-red); margin-top: 5px; font-family: var(--mono); }
+  .station.pending { border-style: dashed; color: var(--ink-soft); background: transparent; }
+  .station.running { border-left: 6px solid var(--safety); }
+  .station.running .s-name::after { content: " ▸ working"; color: var(--safety); }
+  .station .s-stamp {
+    position: absolute; bottom: 6px; right: 8px; transform: rotate(-4deg);
+    font-family: var(--display); font-size: 11px; letter-spacing: 0.08em;
+    border: 2px solid currentColor; border-radius: 3px; padding: 1px 6px; text-transform: uppercase;
+  }
+  .station.completed .s-stamp { color: var(--stamp-blue); }
+  .station.failed .s-stamp, .station.cancelled .s-stamp { color: var(--stamp-red); }
+  .station.skipped .s-stamp { color: var(--stamp-gray); }
+  .station .pybadge { display: inline-block; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.14em; border: 1px solid var(--ink); padding: 1px 5px; margin-left: 6px; vertical-align: 1px; background: var(--concrete); }
+
+  /* retry tallies: one tick per delivery */
+  .tallies { display: flex; gap: 3px; margin-top: 7px; align-items: flex-end; height: 12px; }
+  .tallies i { width: 3px; height: 12px; background: var(--safety); display: inline-block; }
+  .tallies i.spent { background: var(--stamp-red); }
+  .tallies .t-label { font-family: var(--mono); font-size: 10px; color: var(--ink-soft); margin-left: 5px; line-height: 1; }
+
+  .manifest { border-top: 1.5px solid var(--ink); padding: 12px 20px 18px; }
+  .manifest summary { cursor: pointer; font-family: var(--mono); font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; }
+  .manifest pre { font-family: var(--mono); font-size: 12px; overflow-x: auto; background: var(--concrete); padding: 12px; margin: 10px 0 0; }
+
+  .recent { margin-top: 16px; display: flex; gap: 8px; flex-wrap: wrap; font-family: var(--mono); font-size: 12px; }
+  .recent button { font-family: var(--mono); font-size: 12px; border: 1px solid var(--ink); background: var(--label); padding: 4px 10px; cursor: pointer; }
+  .recent button:hover { background: var(--ink); color: var(--label); }
+
+  footer { margin-top: 56px; color: var(--ink-soft); font-size: 13px; border-top: 1px dashed var(--line); padding-top: 14px; }
+  footer code { font-family: var(--mono); font-size: 12px; }
+  .toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: var(--ink); color: var(--label); font-family: var(--mono); font-size: 13px; padding: 10px 18px; box-shadow: 4px 4px 0 rgba(0,0,0,0.25); display: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="masthead">
+    <div class="masthead-row">
+      <h1 class="wordmark">Ship-It<small>FREIGHT &amp; PARCEL — POWERED BY QUEUEFLOW</small></h1>
+      <a class="office-link" href="/admin.html">Dispatch office →</a>
+    </div>
+    <div class="hazard" role="presentation"></div>
+    <p class="lede">Every order is a <b>workflow</b>: seven steps, two of them in parallel,
+    each with its own retry budget and failure policy, executed by a <b>Node worker</b> —
+    then handed to a <b>Python worker</b> on another queue for packing. Place one and watch it move.</p>
+  </header>
+
+  <div class="slip">
+    <label>SHIP TO
+      <input id="email" type="email" value="dockhand@example.com" autocomplete="email" />
+    </label>
+    <label><input id="bounce" type="checkbox" /> this mailbox bounces
+      <span class="hint">(confirmation step fails → skip policy → order still ships)</span>
+    </label>
+  </div>
+
+  <section class="catalog" id="catalog" aria-label="Products"></section>
+
+  <section class="waybill" id="waybill" hidden aria-live="polite">
+    <div class="waybill-head">
+      <span class="title">WAYBILL</span>
+      <span class="order-id" id="wb-order">—</span>
+      <span class="barcode" role="presentation"></span>
+      <span class="stamp orange" id="wb-stamp">IN PROGRESS</span>
+    </div>
+    <div class="route" id="route"></div>
+    <details class="manifest">
+      <summary>Manifest — workflow context</summary>
+      <pre id="wb-context">{}</pre>
+    </details>
+  </section>
+
+  <div class="recent" id="recent"></div>
+
+  <footer>
+    Ambient chaos: every payment attempt fails with probability <code>PAYMENT_FAILURE_RATE</code>
+    (default 0.25). Try killing the Node worker mid-order — the lease expires, the janitor reclaims
+    the job, and the next worker finishes it. Nothing is lost; that's the point.
+  </footer>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  const money = (c) => "$" + (c / 100).toLocaleString("en-US", { minimumFractionDigits: 2 });
+
+  // The pipeline's shape, drawn as columns; parallel steps share a column.
+  const ROUTE = [["validate"], ["charge", "fraud"], ["reserve"], ["invoice"], ["confirm", "warehouse"], ["__pack__"]];
+  const STEP_LABELS = {
+    validate: "Validate order", charge: "Charge payment", fraud: "Fraud screen",
+    reserve: "Reserve stock", invoice: "Generate invoice", confirm: "Confirm email",
+    warehouse: "Warehouse hand-off", __pack__: "Pack &amp; ship",
+  };
+  const STAMPS = { completed: "cleared", failed: "rejected", skipped: "skipped", cancelled: "void" };
+  const WF_STAMP = {
+    created: ["IN PROGRESS", "orange"], running: ["IN PROGRESS", "orange"],
+    completed: ["FULFILLED", "blue"], failed: ["REJECTED", "red"],
+    partially_failed: ["FULFILLED*", "blue"], cancelled: ["VOID", "gray"],
+  };
+
+  let source = null;
+  const recent = [];
+
+  function toast(msg) {
+    const t = $("toast");
+    t.textContent = msg;
+    t.style.display = "block";
+    clearTimeout(t._h);
+    t._h = setTimeout(() => (t.style.display = "none"), 3500);
+  }
+
+  async function loadCatalog() {
+    const { products } = await (await fetch("/api/catalog")).json();
+    $("catalog").innerHTML = products.map((p) => `
+      <article class="product">
+        <div class="topline"><span>${p.sku}</span><span class="barcode" role="presentation"></span></div>
+        <h2>${p.name}</h2>
+        <div class="price">${money(p.priceCents)}</div>
+        <div class="demo-note"><span class="eyebrow">DEMONSTRATES</span>${p.demonstrates}</div>
+        <div class="order-row">
+          <input type="number" min="1" value="1" aria-label="Quantity" id="qty-${p.sku}" />
+          <button class="place" data-sku="${p.sku}">Place order</button>
+        </div>
+      </article>`).join("");
+    for (const btn of document.querySelectorAll("button.place")) {
+      btn.addEventListener("click", () => placeOrder(btn));
+    }
+  }
+
+  async function placeOrder(btn) {
+    const sku = btn.dataset.sku;
+    btn.disabled = true;
+    try {
+      const res = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          sku,
+          qty: Number($("qty-" + sku).value || 1),
+          email: $("email").value,
+          bounceEmail: $("bounce").checked,
+        }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || res.statusText);
+      recent.unshift({ orderId: body.orderId, workflowId: body.workflowId });
+      renderRecent();
+      track(body.workflowId, body.orderId);
+    } catch (err) {
+      toast("Order refused: " + err.message);
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  function renderRecent() {
+    $("recent").innerHTML = recent.length
+      ? "RECENT: " + recent.slice(0, 6).map((r) =>
+          `<button data-wf="${r.workflowId}" data-id="${r.orderId}">${r.orderId}</button>`).join("")
+      : "";
+    for (const b of $("recent").querySelectorAll("button")) {
+      b.addEventListener("click", () => track(b.dataset.wf, b.dataset.id));
+    }
+  }
+
+  function track(workflowId, orderId) {
+    if (source) source.close();
+    $("waybill").hidden = false;
+    $("wb-order").textContent = orderId;
+    setStamp("IN PROGRESS", "orange");
+    $("route").innerHTML = "";
+    $("waybill").scrollIntoView({ behavior: "smooth", block: "start" });
+
+    source = new EventSource(`/api/orders/${workflowId}/events`);
+    source.addEventListener("snapshot", (e) => render(JSON.parse(e.data)));
+    source.addEventListener("error", (e) => {
+      if (e.data) toast("Tracker: " + JSON.parse(e.data).error);
+    });
+    source.addEventListener("done", () => source.close());
+  }
+
+  function setStamp(text, tone) {
+    const s = $("wb-stamp");
+    s.textContent = text;
+    s.className = "stamp " + tone;
+  }
+
+  function station(name, data) {
+    const status = data?.status ?? "pending";
+    const el = document.createElement("div");
+    el.className = "station " + status;
+    const stamp = STAMPS[status] ? `<span class="s-stamp">${STAMPS[status]}</span>` : "";
+    const py = name === "__pack__" ? '<span class="pybadge">PYTHON</span>' : "";
+    let sub = "", err = "", tallies = "";
+    if (data?.job) {
+      const j = data.job;
+      if (j.status === "retrying" && j.nextRetryAt) {
+        const secs = Math.max(0, Math.round((new Date(j.nextRetryAt) - Date.now()) / 1000));
+        sub = `retrying in ~${secs}s (backoff)`;
+      } else if (status === "running") sub = "on the bench";
+      if (j.deliveryCount > 1 || j.retryCount > 0) {
+        const n = Math.max(j.deliveryCount, j.retryCount + 1);
+        tallies = `<div class="tallies">${'<i></i>'.repeat(Math.min(n, 12))}<span class="t-label">attempt ${n}</span></div>`;
+      }
+      if (j.error && status !== "completed") err = `<div class="s-err">${j.error}</div>`;
+    }
+    if (data?.result?.tracking_number) sub = "tracking " + data.result.tracking_number;
+    if (data?.result?.invoice_no) sub = data.result.invoice_no;
+    if (data?.result?.transaction_id && name === "charge") sub = data.result.transaction_id;
+    el.innerHTML = `<div class="s-name">${STEP_LABELS[name] ?? name}${py}</div>
+      <div class="s-sub">${sub}</div>${tallies}${err}${stamp}`;
+    return el;
+  }
+
+  function render(snap) {
+    const byName = Object.fromEntries(snap.steps.map((s) => [s.name, s]));
+    const route = $("route");
+    route.innerHTML = "";
+    ROUTE.forEach((col, i) => {
+      if (i > 0) {
+        const j = document.createElement("div");
+        j.className = "joint";
+        route.appendChild(j);
+      }
+      const c = document.createElement("div");
+      c.className = "col";
+      for (const name of col) {
+        if (name === "__pack__") {
+          const w = snap.warehouse;
+          const stepData = w
+            ? { status: w.status, job: null, result: w.result }
+            : { status: snap.workflow.status === "failed" ? "cancelled" : "pending" };
+          // Attach the step's job-ish fields for the tally/error renderer.
+          c.appendChild(station(name, stepData));
+        } else {
+          const s = byName[name];
+          const merged = s ? { status: s.status, job: s.job, result: s.job?.result } : undefined;
+          c.appendChild(station(name, merged));
+        }
+      }
+      route.appendChild(c);
+    });
+
+    const [text, tone] = WF_STAMP[snap.workflow.status] ?? ["IN PROGRESS", "orange"];
+    // Hold the waybill stamp until the warehouse settles too.
+    if (snap.workflow.status === "completed" && snap.warehouse && snap.warehouse.status !== "completed") {
+      setStamp("PACKING", "orange");
+    } else {
+      setStamp(text, tone);
+    }
+
+    const ctx = {};
+    for (const s of snap.steps) if (s.job?.result) ctx[s.name] = s.job.result;
+    if (snap.warehouse?.result) ctx.pack = snap.warehouse.result;
+    $("wb-context").textContent = JSON.stringify({ order: snap.order, results: ctx }, null, 2);
+  }
+
+  loadCatalog().catch((err) => toast("Catalog failed to load: " + err.message));
+</script>
+</body>
+</html>
