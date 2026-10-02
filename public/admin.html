@@ -60,7 +60,16 @@
   button.act.quiet { background: var(--label); }
   button.act:disabled { background: var(--line); cursor: default; box-shadow: none; }
 
-  .loadmore { margin-top: 12px; }
+  .loadmore { margin-top: 12px; display: flex; gap: 10px; }
+  .banner {
+    display: none; margin-top: 18px; padding: 12px 16px;
+    border: 1.5px solid var(--stamp-red); background: #fff;
+    color: var(--stamp-red); font-family: var(--mono); font-size: 13px;
+    box-shadow: 4px 4px 0 var(--stamp-red);
+  }
+  .banner.show { display: block; }
+  .range { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-family: var(--mono); font-size: 12px; margin: 0 0 12px; }
+  .range input[type="datetime-local"] { font-family: var(--mono); font-size: 12px; border: 1.5px solid var(--ink); background: var(--label); padding: 5px 8px; }
   .toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: var(--ink); color: var(--label); font-family: var(--mono); font-size: 13px; padding: 10px 18px; display: none; }
   .scroll { overflow-x: auto; }
 </style>
@@ -73,6 +82,7 @@
       <a class="back" href="/">← Storefront</a>
     </div>
     <div class="hazard" role="presentation"></div>
+    <div class="banner" id="banner" role="alert"></div>
   </header>
 
   <section>
@@ -82,12 +92,22 @@
 
   <section>
     <h2>Manifest <span class="note">every job, newest first — paged by keyset cursor, not OFFSET</span></h2>
+    <div class="range">
+      <label>FROM <input type="datetime-local" id="from" step="1" /></label>
+      <label>TO <input type="datetime-local" id="to" step="1" /></label>
+      <button class="act quiet" id="apply-range">Apply</button>
+      <button class="act quiet" id="clear-range">Clear</button>
+      <span class="note" style="color: var(--ink-soft)">history window — the engine keeps terminal rows for RETENTION_HOURS (demo: 168h)</span>
+    </div>
     <div class="filters" id="filters"></div>
     <div class="scroll"><table id="jobs-table">
       <thead><tr><th>Job</th><th>Task</th><th>Queue</th><th>Status</th><th>Attempts</th><th>Error</th></tr></thead>
       <tbody id="jobs"></tbody>
     </table></div>
-    <div class="loadmore"><button class="act quiet" id="more" hidden>Load next page</button></div>
+    <div class="loadmore">
+      <button class="act quiet" id="refresh-jobs">Refresh</button>
+      <button class="act quiet" id="more" hidden>Load next page</button>
+    </div>
   </section>
 
   <section>
@@ -114,6 +134,27 @@
   const when = (iso) => (iso ? new Date(iso).toLocaleTimeString() : "—");
   let statusFilter = "";
   let nextCursor = null;
+  let range = { from: null, to: null };
+  let failures = 0;
+
+  function banner(msg) {
+    const b = $("banner");
+    if (msg) {
+      b.textContent = msg;
+      b.classList.add("show");
+    } else {
+      b.classList.remove("show");
+    }
+  }
+  function loadFailed(what, err) {
+    failures += 1;
+    banner(`Cannot reach the engine (${what}: ${err?.message ?? err}). ` +
+      "Is the stack up? `make up` starts Postgres + the QueueFlow server; the web process proxies this page's data from it.");
+  }
+  function loadSucceeded() {
+    if (failures) { failures = 0; banner(null); }
+    else banner(null);
+  }
 
   function toast(msg) {
     const t = $("toast");
@@ -121,6 +162,13 @@
     t.style.display = "block";
     clearTimeout(t._h);
     t._h = setTimeout(() => (t.style.display = "none"), 3500);
+  }
+
+  async function getJSON(url) {
+    const res = await fetch(url);
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(body.error || res.statusText);
+    return body;
   }
 
   const FILTERS = ["", "pending", "running", "retrying", "completed", "failed", "cancelled"];
@@ -143,21 +191,29 @@
     </tr>`;
   }
 
+  const TRANSIENT = new Set(["pending", "running", "retrying"]);
   async function loadJobs(append = false) {
     const params = new URLSearchParams();
     if (statusFilter) params.set("status", statusFilter);
     if (append && nextCursor) params.set("cursor", nextCursor);
-    const res = await (await fetch("/api/admin/jobs?" + params)).json();
+    if (range.from) params.set("createdAfter", range.from);
+    if (range.to) params.set("createdBefore", range.to);
+    const res = await getJSON("/api/admin/jobs?" + params);
     const rows = res.jobs.map(jobRow).join("");
+    const empty = TRANSIENT.has(statusFilter)
+      ? `No ${statusFilter} jobs right now — these states are transient; jobs usually pass through them in under a second. Order some Bubble wrap and refresh quickly to catch a retry.`
+      : range.from || range.to
+        ? "No jobs in this time window. Note the engine's retention sweep deletes terminal rows older than RETENTION_HOURS."
+        : "No jobs yet. Go place an order.";
     if (append) $("jobs").insertAdjacentHTML("beforeend", rows);
-    else $("jobs").innerHTML = rows || `<tr><td colspan="6" class="empty">No jobs match. Go place an order.</td></tr>`;
+    else $("jobs").innerHTML = rows || `<tr><td colspan="6" class="empty">${empty}</td></tr>`;
     nextCursor = res.nextCursor;
     $("more").hidden = !nextCursor;
     renderFilters();
   }
 
   async function loadDlq() {
-    const res = await (await fetch("/api/admin/dlq")).json();
+    const res = await getJSON("/api/admin/dlq");
     $("dlq").innerHTML = res.deadLetters.length
       ? res.deadLetters.map((d) => `<tr>
           <td>${d.id}</td>
@@ -187,7 +243,7 @@
   }
 
   async function loadCrons() {
-    const res = await (await fetch("/api/admin/crons")).json();
+    const res = await getJSON("/api/admin/crons");
     $("crons").innerHTML = res.crons.length
       ? res.crons.map((c) => `<tr>
           <td>${esc(c.name)}</td>
@@ -208,7 +264,7 @@
   }
 
   async function loadStats() {
-    const s = await (await fetch("/api/admin/stats")).json();
+    const s = await getJSON("/api/admin/stats");
     const entries = [
       ["created", s.jobs_created], ["completed", s.jobs_completed], ["retried", s.jobs_retried],
       ["failed", s.jobs_failed], ["dead-lettered", s.jobs_dead_lettered],
@@ -219,16 +275,36 @@
   }
 
   function refresh() {
-    loadStats().catch(() => {});
-    loadJobs().catch(() => {});
-    loadDlq().catch(() => {});
-    loadCrons().catch(() => {});
+    Promise.all([loadStats(), loadJobs(), loadDlq(), loadCrons()])
+      .then(loadSucceeded)
+      .catch((e) => loadFailed("refresh", e));
   }
 
+  function rangeFromInputs() {
+    const from = $("from").value ? new Date($("from").value).toISOString() : null;
+    const to = $("to").value ? new Date($("to").value).toISOString() : null;
+    range = { from, to };
+    nextCursor = null;
+  }
+  $("apply-range").addEventListener("click", () => { rangeFromInputs(); loadJobs().catch((e) => loadFailed("jobs", e)); });
+  $("clear-range").addEventListener("click", () => {
+    $("from").value = ""; $("to").value = ""; range = { from: null, to: null }; nextCursor = null;
+    loadJobs().catch((e) => loadFailed("jobs", e));
+  });
+  $("refresh-jobs").addEventListener("click", () => loadJobs().catch((e) => loadFailed("jobs", e)));
   $("more").addEventListener("click", () => loadJobs(true).catch((e) => toast(e.message)));
   renderFilters();
   refresh();
-  setInterval(() => { if (!document.hidden) { loadStats().catch(() => {}); loadDlq().catch(() => {}); } }, 3000);
+  // A hidden tab skips the poll; catch up the moment it is visible again.
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) refresh(); });
+  // Keep the live sections fresh; the manifest refreshes on demand so cursor
+  // pages are not yanked out from under you.
+  setInterval(() => {
+    if (document.hidden) return;
+    Promise.all([loadStats(), loadDlq(), loadCrons()])
+      .then(loadSucceeded)
+      .catch((e) => loadFailed("auto-refresh", e));
+  }, 3000);
 </script>
 </body>
 </html>

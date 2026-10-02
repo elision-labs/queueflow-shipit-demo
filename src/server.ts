@@ -7,7 +7,7 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import express, { type NextFunction, type Request, type Response } from "express";
-import { ApiError, ConflictError, type Job } from "@queueflow/sdk";
+import { ApiError, ConflictError, ConnectionError, TimeoutError, type Job } from "@queueflow/sdk";
 import { qf } from "./queueflow.js";
 import { config, ORDERS_QUEUE } from "./config.js";
 import { CATALOG, TASKS, newOrderId, orderWorkflow, type Order } from "./pipeline.js";
@@ -189,6 +189,8 @@ app.get("/api/admin/jobs", async (req, res, next) => {
       status: (req.query.status as string) || undefined,
       queue: (req.query.queue as string) || undefined,
       cursor: (req.query.cursor as string) || undefined,
+      createdAfter: (req.query.createdAfter as string) || undefined,
+      createdBefore: (req.query.createdBefore as string) || undefined,
     });
     res.json({
       jobs: page.jobs.map((j) => ({
@@ -282,27 +284,40 @@ app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
   if (err instanceof ApiError) {
     return res.status(err.status).json({ error: err.message });
   }
+  if (err instanceof ConnectionError || err instanceof TimeoutError) {
+    // The engine is down or unreachable - say so, instead of a generic 500
+    // the dispatch office can only render as "internal error".
+    return res.status(502).json({ error: `queueflow engine unreachable: ${err.message}` });
+  }
   console.error("[web] unhandled:", err);
   res.status(500).json({ error: "internal error" });
 });
 
-/** Register the standing cron route; a 409 means it already exists. */
+/** Register the standing cron route; a 409 means it already exists. Never
+ * fatal: the storefront must come up even when the engine is still booting
+ * (or down) — registration retries in the background until it lands. */
 async function ensureCron(): Promise<void> {
-  try {
-    await qf.cron.create({
-      name: "abandoned-cart-sweep",
-      schedule: "* * * * *",
-      task: TASKS.cartSweep,
-      queue: ORDERS_QUEUE,
-    });
-    console.log("[web] registered cron: abandoned-cart-sweep (every minute)");
-  } catch (err) {
-    if (!(err instanceof ConflictError)) throw err;
+  for (;;) {
+    try {
+      await qf.cron.create({
+        name: "abandoned-cart-sweep",
+        schedule: "* * * * *",
+        task: TASKS.cartSweep,
+        queue: ORDERS_QUEUE,
+      });
+      console.log("[web] registered cron: abandoned-cart-sweep (every minute)");
+      return;
+    } catch (err) {
+      if (err instanceof ConflictError) return; // already registered
+      const msg = err instanceof Error ? err.message : String(err);
+      console.warn(`[web] cron registration failed (${msg}); retrying in 10s`);
+      await new Promise((r) => setTimeout(r, 10_000));
+    }
   }
 }
 
 export async function startWeb(): Promise<void> {
-  await ensureCron();
+  void ensureCron();
   await new Promise<void>((resolve) => app.listen(config.port, resolve));
   console.log(`[web] Ship-It storefront:   http://localhost:${config.port}`);
   console.log(`[web] Dispatch office:      http://localhost:${config.port}/admin.html`);

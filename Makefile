@@ -48,4 +48,4 @@ dev-server:
 	docker compose up -d --wait postgres
 	cd ../queueflow-core-rs && DATABASE_URL=postgres://queueflow:queueflow@localhost:5433/queueflow \
 		cargo run -q -p queueflow -- serve --mode api --default-queue orders \
-		--api-keys shipit-key:shipit --worker-token shipit-worker-token --retention-hours 24
+		--api-keys shipit-key:shipit --worker-token shipit-worker-token --retention-hours 168

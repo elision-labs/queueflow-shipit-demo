@@ -1,6 +1,7 @@
 services:
   postgres:
     image: postgres:16-alpine
+    restart: unless-stopped
     environment:
       POSTGRES_USER: queueflow
       POSTGRES_PASSWORD: queueflow
@@ -15,13 +16,14 @@ services:
 
   queueflow:
     build: ../queueflow-core-rs
+    restart: unless-stopped
     command: >
       queueflow serve
       --mode api
       --default-queue orders
       --api-keys shipit-key:shipit
       --worker-token shipit-worker-token
-      --retention-hours 24
+      --retention-hours 168
     environment:
       DATABASE_URL: postgres://queueflow:queueflow@postgres:5432/queueflow
       RUST_LOG: info

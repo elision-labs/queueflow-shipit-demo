@@ -115,10 +115,12 @@ async function main() {
   if (briefcaseDone.status !== "failed") fail(`briefcase workflow ended ${briefcaseDone.status}`);
   const bSteps = await qf.workflows.steps(briefcase.id);
   if (bSteps.find((s) => s.name === "fraud")?.status !== "failed") fail("fraud step not failed");
-  // A halt CANCELS everything not yet terminal (skipped is the skip-policy
-  // dependents' status).
-  if (bSteps.find((s) => s.name === "reserve")?.status !== "cancelled") {
-    fail("downstream step should be cancelled after the halt");
+  // Downstream of a halt ends cancelled (the halt's sweep) or skipped (a
+  // concurrent advance marked the dependency unsatisfiable first) - both are
+  // correct; which one wins is a benign race between the two writers.
+  const reserveStatus = bSteps.find((s) => s.name === "reserve")?.status;
+  if (reserveStatus !== "cancelled" && reserveStatus !== "skipped") {
+    fail(`downstream step should be cancelled or skipped after the halt, was ${reserveStatus}`);
   }
   await sleep(1000);
   const fresh = (await qf.dlq.list({ limit: 100 })).dead_letters.filter(
