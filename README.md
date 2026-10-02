@@ -41,7 +41,10 @@ make worker-py   # the Python worker (warehouse queue)
 ```
 
 Place orders and watch the waybill. Everything the UI shows comes from the
-engine's HTTP API through `@queueflow/sdk` — there is no app database.
+engine's HTTP API through [`@queueflow/sdk`](https://www.npmjs.com/package/@queueflow/sdk)
+(installed from npm) — there is no app database. The Python worker still
+installs the Python SDK from the sibling checkout until it ships on PyPI,
+and `make up` builds the engine image from the sibling `queueflow-core-rs`.
 
 ## A five-minute tour
 

@@ -12,7 +12,7 @@
     "smoke": "tsx scripts/smoke.ts"
   },
   "dependencies": {
-    "@queueflow/sdk": "file:../queueflow-sdk-nodejs",
+    "@queueflow/sdk": "^0.1.0",
     "express": "^4.19.2"
   },
   "devDependencies": {
