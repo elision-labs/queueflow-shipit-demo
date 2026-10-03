@@ -29,7 +29,7 @@ validate_order ──┤                   ├─ reserve ─ invoice ───�
 Requirements: Docker, Node 18+, Python 3.10+.
 
 ```bash
-make demo        # engine up (first run compiles Rust in Docker) + workers + smoke test
+make demo        # engine up (pulls ghcr.io/elision-labs/queueflow) + workers + smoke test
 ```
 
 Then, in three terminals:
@@ -43,8 +43,10 @@ make worker-py   # the Python worker (warehouse queue)
 Place orders and watch the waybill. Everything the UI shows comes from the
 engine's HTTP API through [`@queueflow/sdk`](https://www.npmjs.com/package/@queueflow/sdk)
 (npm) and [`queueflow`](https://pypi.org/project/queueflow/) (PyPI) — there is
-no app database. The only sibling checkout still required is
-`queueflow-core-rs`, which `make up` builds the engine image from.
+no app database. The engine itself runs from the published
+[`ghcr.io/elision-labs/queueflow`](https://github.com/elision-labs/queueflow-core/pkgs/container/queueflow)
+image, so no sibling checkout is needed to run the demo at all (only to hack
+on the engine — see `make dev-server`).
 
 ## A five-minute tour
 

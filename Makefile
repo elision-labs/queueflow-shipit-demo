@@ -1,6 +1,6 @@
 # Ship-It: the QueueFlow order-pipeline demo.
 #
-#   make up        engine + postgres via docker compose (first build compiles Rust; grab a coffee)
+#   make up        engine + postgres via docker compose (pulls the published engine image)
 #   make install   node deps + python venv for the warehouse worker
 #   make demo      up + install + end-to-end smoke test (spawns its own workers)
 #   make web       storefront + dispatch office on :3100

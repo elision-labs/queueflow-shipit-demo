@@ -15,10 +15,14 @@ services:
       retries: 30
 
   queueflow:
-    build: ../queueflow-core-rs
+    # The published engine image - no Rust toolchain or sibling checkout
+    # needed. Pin the minor; pass --build via 'docker compose build' against
+    # ../queueflow-core-rs only when hacking on the engine itself.
+    image: ghcr.io/elision-labs/queueflow:0.1
     restart: unless-stopped
+    # The image ENTRYPOINT is the queueflow binary; command supplies args only.
     command: >
-      queueflow serve
+      serve
       --mode api
       --default-queue orders
       --api-keys shipit-key:shipit
