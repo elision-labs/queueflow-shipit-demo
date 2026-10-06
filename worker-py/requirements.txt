@@ -1,2 +1,2 @@
 # The QueueFlow Python SDK, from PyPI.
-queueflow>=0.1.0,<0.2
+queueflow>=0.2.0,<0.3
