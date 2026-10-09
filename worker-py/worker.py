@@ -22,9 +22,22 @@ import time
 
 from queueflow.facade import QueueFlow
 
+
+
+def require_env(name: str) -> str:
+    """Credentials have no defaults: stop at startup and name the variable."""
+    value = os.environ.get(name)
+    if not value:
+        sys.exit(
+            f"[warehouse] {name} is not set. Copy .env.example to .env and fill it in "
+            "(or set the variable on the service), then start again."
+        )
+    return value
+
+
 BASE_URL = os.environ.get("QUEUEFLOW_URL", "http://localhost:8000")
-TOKEN = os.environ.get("QUEUEFLOW_TOKEN", "shipit-key")
-WORKER_TOKEN = os.environ.get("QUEUEFLOW_WORKER_TOKEN", "shipit-worker-token")
+TOKEN = require_env("QUEUEFLOW_TOKEN")
+WORKER_TOKEN = require_env("QUEUEFLOW_WORKER_TOKEN")
 QUEUE = "warehouse"
 
 logging.basicConfig(level=logging.INFO, format="[warehouse] %(message)s")

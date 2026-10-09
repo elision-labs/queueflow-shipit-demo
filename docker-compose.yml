@@ -21,12 +21,14 @@ services:
     image: ghcr.io/elision-labs/queueflow:0.1
     restart: unless-stopped
     # The image ENTRYPOINT is the queueflow binary; command supplies args only.
+    # The two credentials come from .env (cp .env.example .env); compose
+    # refuses to start without them rather than falling back to known values.
     command: >
       serve
       --mode api
       --default-queue orders
-      --api-keys shipit-key:shipit
-      --worker-token shipit-worker-token
+      --api-keys ${QUEUEFLOW_TOKEN:?set QUEUEFLOW_TOKEN in .env (cp .env.example .env)}:shipit
+      --worker-token ${QUEUEFLOW_WORKER_TOKEN:?set QUEUEFLOW_WORKER_TOKEN in .env (cp .env.example .env)}
       --retention-hours 168
     environment:
       DATABASE_URL: postgres://queueflow:queueflow@postgres:5432/queueflow
