@@ -21,7 +21,7 @@ validate_order ──┤                   ├─ reserve ─ invoice ───�
 | --- | --- |
 | **Anvil, 40 lb** | The happy path, with ambient payment chaos (`PAYMENT_FAILURE_RATE`, default 0.25). |
 | **Bubble wrap, 1 km** | A deterministic retry storm: payment fails 3 times, backs off exponentially with jitter, then clears. Watch the attempt tallies. |
-| **Suspicious briefcase** | A fraud halt: `NonRetryableError` → job dead-letters, the step's `halt` policy fails the workflow and skips everything downstream. Replay it from the dispatch office. |
+| **Suspicious briefcase** | A fraud halt: `NonRetryableError` → job dead-letters, the step's `halt` policy fails the workflow and cancels the remaining steps. Replay it from the dispatch office. |
 | *"this mailbox bounces"* | The skip policy: the confirmation email fails twice and dead-letters, but the order still ships — the workflow ends `partially_failed`. |
 
 ## Run it
@@ -29,8 +29,14 @@ validate_order ──┤                   ├─ reserve ─ invoice ───�
 Requirements: Docker, Node 18+, Python 3.10+.
 
 ```bash
-make demo        # engine up (pulls ghcr.io/elision-labs/queueflow) + workers + smoke test
+cp .env.example .env     # then fill in QUEUEFLOW_TOKEN and QUEUEFLOW_WORKER_TOKEN
+make demo                # engine up (pulls ghcr.io/elision-labs/queueflow) + workers + smoke test
 ```
+
+Nothing in the repo falls back to a known credential: docker compose refuses
+to start the engine until both tokens are in `.env`, and each app process exits
+at startup naming the variable it is missing. `openssl rand -hex 24` mints a
+fine value. `.env.example` documents every variable.
 
 Then, in three terminals:
 
@@ -59,8 +65,9 @@ on the engine — see `make dev-server`).
    restarted worker finishes the order. At-least-once delivery is why every
    handler is idempotent.
 3. **Order the briefcase.** The fraud screen rejects it permanently: the route
-   stamps REJECTED, downstream stations are skipped, and the job lands on the
-   dispatch office's *damaged parcels* shelf. Replay it from there.
+   stamps REJECTED, the remaining stations are cancelled, and the job lands on
+   the dispatch office's *damaged parcels* shelf. Replay it from there (this
+   needs the admin token, see below).
 4. **Tick "this mailbox bounces"** on any order: the confirmation is skipped,
    the parcel still gets packed by the Python worker, and the waybill stamps
    FULFILLED* (`partially_failed`).
@@ -78,9 +85,45 @@ twice.
 
 | Piece | Where | Notes |
 | --- | --- | --- |
-| Engine | docker compose (`queueflow serve --mode api`) | No in-process workers: everything runs through the remote worker protocol. Strict auth: tenant key `shipit-key`, worker token `shipit-worker-token`. |
-| Storefront + API | `src/server.ts` (Express) | Proxies the SDK; streams order snapshots to the browser over SSE. |
+| Engine | docker compose (`queueflow serve --mode api`) | No in-process workers: everything runs through the remote worker protocol. Strict auth: the tenant key and worker token come from `.env` (`QUEUEFLOW_TOKEN`, `QUEUEFLOW_WORKER_TOKEN`). |
+| Storefront + API | `src/server.ts` (Express) | Proxies the SDK; streams order snapshots to the browser over SSE. `src/guards.ts` holds the admin bearer check and the rate limiter. |
 | Order pipeline | `src/pipeline.ts` | The DAG, per-step configs, and failure policies. |
 | Node worker | `src/worker.ts` | Leases `orders`; heartbeats at lease/2 via `qf.worker.run`. |
-| Python worker | `worker-py/worker.py` | Leases `warehouse` with the generated Python SDK; the polyglot half. |
+| Python worker | `worker-py/worker.py` | Leases `warehouse` through the Python SDK's `run_worker` ([`queueflow`](https://pypi.org/project/queueflow/) >= 0.2); the polyglot half. |
 | Smoke test | `scripts/smoke.ts` | Spawns both workers and proves all four scenarios end to end. |
+
+## Running it in public
+
+The demo at [demo.queueflow.dev](https://demo.queueflow.dev) is open to anyone,
+so the web process carries two guards:
+
+- **Admin token.** Mutating dispatch-office calls (`POST /api/admin/dlq/:id/replay`,
+  `POST /api/admin/crons/:id/pause|resume`) require
+  `Authorization: Bearer <SHIPIT_ADMIN_TOKEN>`. The dispatch office has an
+  *admin token* field that keeps the value in your browser's localStorage and
+  sends it on those calls; a wrong or missing token gets a 401 with a plain
+  message. If the operator never set `SHIPIT_ADMIN_TOKEN`, those calls answer
+  503 and explain why. Every read-only admin view (counters, manifest, dead
+  letters, crons) stays open.
+- **Rate limit.** Every mutating `/api` route (placing orders included) shares
+  an in-memory per-IP budget of `RATE_LIMIT_PER_MINUTE` requests per 60 s
+  (default 20), answering 429 with `Retry-After` beyond that. Reads and the SSE
+  tracker are not counted. `X-Forwarded-For` is trusted for one hop only when
+  Railway's injected `RAILWAY_SERVICE_ID` / `RAILWAY_ENVIRONMENT_ID` is present
+  or `TRUST_PROXY=1` is set; otherwise the socket address is used.
+
+Environment variables, in one place:
+
+| Variable | Who reads it | Required | Notes |
+| --- | --- | --- | --- |
+| `QUEUEFLOW_TOKEN` | engine (compose), web, both workers | yes | tenant key; the engine gets it as `--api-keys $QUEUEFLOW_TOKEN:shipit` |
+| `QUEUEFLOW_WORKER_TOKEN` | engine (compose), web, both workers | yes | worker-protocol credential |
+| `QUEUEFLOW_URL` | web, both workers | no | default `http://localhost:8000` |
+| `SHIPIT_ADMIN_TOKEN` | web | no | enables DLQ replay and cron pause/resume |
+| `PORT` | web | no | default 3100 |
+| `RATE_LIMIT_PER_MINUTE` | web | no | default 20 |
+| `TRUST_PROXY` | web | no | `1` to honour one `X-Forwarded-For` hop off Railway |
+| `PAYMENT_FAILURE_RATE` | Node worker | no | default 0.25 |
+
+The Railway deployment is described as code in `.railway/railway.ts`, with a
+per-service runbook in [`deploy/railway/README.md`](deploy/railway/README.md).
