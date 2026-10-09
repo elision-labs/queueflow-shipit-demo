@@ -16,7 +16,7 @@ sources, and the engine runs the published image.
 | Service | Source | Root / upload | Start command | Exposure |
 | --- | --- | --- | --- | --- |
 | `Postgres` | Railway managed Postgres | n/a | n/a | private |
-| `engine` | image `ghcr.io/elision-labs/queueflow:0.1` | n/a | image entrypoint (`queueflow serve`, configured by `QUEUEFLOW_*` env vars) | private, `http://engine.railway.internal:8000` |
+| `engine` | image `ghcr.io/elision-labs/queueflow:0.2` | n/a | image entrypoint (`queueflow serve`, configured by `QUEUEFLOW_*` env vars) | private, `http://engine.railway.internal:8000` |
 | `web` | `railway up --service web` from the repo root | repo root | `npm run web` | public, custom domain `demo.queueflow.dev` on port 3100 |
 | `worker-node` | `railway up --service worker-node` from the repo root | repo root | `npm run worker` | none |
 | `worker-py` | `railway up ./worker-py --path-as-root --service worker-py` | `worker-py/` | `python worker.py` | none |

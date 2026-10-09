@@ -23,7 +23,7 @@ export default defineRailway(() => {
   // env vars (one QUEUEFLOW_* variable per CLI flag). Not publicly exposed:
   // the app processes reach it over the private network.
   const engine = service("engine", {
-    source: image("ghcr.io/elision-labs/queueflow:0.1"),
+    source: image("ghcr.io/elision-labs/queueflow:0.2"),
     env: {
       DATABASE_URL: db.env.DATABASE_URL,
       QUEUEFLOW_MODE: "api",

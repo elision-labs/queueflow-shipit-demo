@@ -18,7 +18,7 @@ services:
     # The published engine image - no Rust toolchain or sibling checkout
     # needed. Pin the minor; pass --build via 'docker compose build' against
     # ../queueflow-core-rs only when hacking on the engine itself.
-    image: ghcr.io/elision-labs/queueflow:0.1
+    image: ghcr.io/elision-labs/queueflow:0.2
     restart: unless-stopped
     # The image ENTRYPOINT is the queueflow binary; command supplies args only.
     # The two credentials come from .env (cp .env.example .env); compose
