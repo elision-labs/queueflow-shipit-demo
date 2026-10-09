@@ -10,11 +10,21 @@ import express, { type NextFunction, type Request, type Response } from "express
 import { ApiError, ConflictError, ConnectionError, TimeoutError, type Job } from "@queueflow/sdk";
 import { qf } from "./queueflow.js";
 import { config, ORDERS_QUEUE } from "./config.js";
+import { rateLimit, requireAdmin } from "./guards.js";
 import { CATALOG, TASKS, newOrderId, orderWorkflow, type Order } from "./pipeline.js";
 
 const app = express();
-app.use(express.json());
+// Behind Railway's proxy the client address is the first X-Forwarded-For hop;
+// elsewhere the header is untrusted and req.ip is the socket address.
+if (config.trustProxy) app.set("trust proxy", 1);
+app.use(express.json({ limit: "16kb" }));
 app.use(express.static(path.join(path.dirname(fileURLToPath(import.meta.url)), "../public")));
+
+// Abuse protection: every mutating /api call (orders, admin actions) shares
+// one per-IP budget; GETs and the SSE tracker are not counted.
+app.use("/api", rateLimit(config.rateLimitPerMinute));
+// Dispatch-office mutations need the operator's bearer token; reads stay open.
+app.use("/api/admin", requireAdmin);
 
 // ---- Storefront --------------------------------------------------------------
 
@@ -321,4 +331,13 @@ export async function startWeb(): Promise<void> {
   await new Promise<void>((resolve) => app.listen(config.port, resolve));
   console.log(`[web] Ship-It storefront:   http://localhost:${config.port}`);
   console.log(`[web] Dispatch office:      http://localhost:${config.port}/admin.html`);
+  console.log(
+    `[web] rate limit: ${config.rateLimitPerMinute}/min per IP on mutating /api routes` +
+      (config.trustProxy ? " (trusting one proxy hop)" : ""),
+  );
+  if (!config.adminToken) {
+    console.warn(
+      "[web] SHIPIT_ADMIN_TOKEN is not set: DLQ replay and cron pause/resume answer 503 until it is",
+    );
+  }
 }

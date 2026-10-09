@@ -4,6 +4,13 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Ship-It Freight &amp; Parcel</title>
+<meta name="description" content="Ship-It: a QueueFlow demo storefront where every order is a seven-step workflow with live retries, failure policies, a dead-letter shelf and a Python warehouse worker." />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="QueueFlow" />
+<meta property="og:title" content="Ship-It: the QueueFlow order-pipeline demo" />
+<meta property="og:description" content="Place an order and watch it move through a seven-step workflow DAG run by a Node worker and a Python worker on one Postgres-native job queue." />
+<meta property="og:url" content="https://demo.queueflow.dev/" />
+<meta name="twitter:card" content="summary" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
@@ -145,6 +152,9 @@
 
   footer { margin-top: 56px; color: var(--ink-soft); font-size: 13px; border-top: 1px dashed var(--line); padding-top: 14px; }
   footer code { font-family: var(--mono); font-size: 12px; }
+  .links { display: flex; gap: 18px; flex-wrap: wrap; font-family: var(--mono); font-size: 12px; letter-spacing: 0.06em; margin-top: 12px; }
+  .links a { color: var(--ink); text-decoration: none; border-bottom: 1.5px solid var(--safety); }
+  .links a:hover { background: var(--safety); }
   .toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: var(--ink); color: var(--label); font-family: var(--mono); font-size: 13px; padding: 10px 18px; box-shadow: 4px 4px 0 rgba(0,0,0,0.25); display: none; }
 </style>
 </head>
@@ -192,6 +202,13 @@
     Ambient chaos: every payment attempt fails with probability <code>PAYMENT_FAILURE_RATE</code>
     (default 0.25). Try killing the Node worker mid-order — the lease expires, the janitor reclaims
     the job, and the next worker finishes it. Nothing is lost; that's the point.
+    Orders are rate limited per address (20 a minute by default), so a stuck button is the
+    limiter, not the queue.
+    <nav class="links" aria-label="QueueFlow links">
+      <a href="https://queueflow.dev">queueflow.dev</a>
+      <a href="https://docs.queueflow.dev">docs.queueflow.dev</a>
+      <a href="https://github.com/elision-labs/queueflow-core">github.com/elision-labs/queueflow-core</a>
+    </nav>
   </footer>
 </div>
 <div class="toast" id="toast"></div>
