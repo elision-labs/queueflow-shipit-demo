@@ -20,17 +20,19 @@ export default defineRailway(() => {
   const db = postgres("Postgres");
 
   // The engine runs from the published image and is configured entirely by
-  // env vars (one QUEUEFLOW_* variable per CLI flag). Not publicly exposed:
-  // the app processes reach it over the private network.
-  const engine = service("engine", {
-    source: image("ghcr.io/elision-labs/queueflow:0.2"),
+  // env vars (one QUEUEFLOW_* variable per CLI flag). The app processes reach
+  // it over the private network; the public hostname exists only for the
+  // read-only dashboard at /ui/, opened with the public viewer key
+  // (shipit-viewer-d01b178cfd69cr.io/elision-labs/queueflow:0.4"),
+    domains: [{ domain: "dashboard.demo.queueflow.dev", port: 8000 }],
     env: {
       DATABASE_URL: db.env.DATABASE_URL,
       QUEUEFLOW_MODE: "api",
       QUEUEFLOW_DEFAULT_QUEUE: "orders",
       QUEUEFLOW_RETENTION_HOURS: "168",
       RUST_LOG: "info",
-      // "<tenant key>:shipit" and the worker credential: random, Railway-only.
+      // "<tenant key>:shipit,<viewer key>:shipit:ro" and the worker
+      // credential. The tenant key and worker token are random, Railway-only.
       QUEUEFLOW_API_KEYS: preserve(),
       QUEUEFLOW_WORKER_TOKEN: preserve(),
     },

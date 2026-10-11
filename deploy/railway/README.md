@@ -39,7 +39,7 @@ requires them. `preserve()` in `.railway/railway.ts` keeps whatever is set.
 | `QUEUEFLOW_MODE` | `api` |
 | `QUEUEFLOW_DEFAULT_QUEUE` | `orders` |
 | `QUEUEFLOW_RETENTION_HOURS` | `168` |
-| `QUEUEFLOW_API_KEYS` | `<tenant key>:shipit` (secret) |
+| `QUEUEFLOW_API_KEYS` | `<tenant key>:shipit,shipit-viewer-d01b178cfd69e second is the public read-only viewer key for the dashboard at https://dashboard.demo.queueflow.dev/ui/) |
 | `QUEUEFLOW_WORKER_TOKEN` | `<worker token>` (secret) |
 | `RUST_LOG` | `info` |
 

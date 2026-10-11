@@ -111,6 +111,10 @@ so the web process carries two guards:
   tracker are not counted. `X-Forwarded-For` is trusted for one hop only when
   Railway's injected `RAILWAY_SERVICE_ID` / `RAILWAY_ENVIRONMENT_ID` is present
   or `TRUST_PROXY=1` is set; otherwise the socket address is used.
+- **Read-only dashboard.** The engine's built-in dashboard is public at
+  [dashboard.demo.queueflow.dev/ui/](https://dashboard.demo.queueflow.dev/ui/).
+  It signs in with the engine's second API key, `shipit-viewer-d01b178cfd69e `shipit` tenant and gets 403 on anything that writes,
+  so publishing it is safe. The real tenant key stays secret.
 
 Environment variables, in one place:
 
