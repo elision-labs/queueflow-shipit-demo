@@ -23,7 +23,9 @@ export default defineRailway(() => {
   // env vars (one QUEUEFLOW_* variable per CLI flag). The app processes reach
   // it over the private network; the public hostname exists only for the
   // read-only dashboard at /ui/, opened with the public viewer key
-  // (shipit-viewer-d01b178cfd69cr.io/elision-labs/queueflow:0.4"),
+  // (shipit-viewer-d01b178cfd69).
+  const engine = service("engine", {
+    source: image("ghcr.io/elision-labs/queueflow:0.5"),
     domains: [{ domain: "dashboard.demo.queueflow.dev", port: 8000 }],
     env: {
       DATABASE_URL: db.env.DATABASE_URL,
