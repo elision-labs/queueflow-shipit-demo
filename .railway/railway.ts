@@ -25,7 +25,7 @@ export default defineRailway(() => {
   // read-only dashboard at /ui/, opened with the public viewer key
   // (shipit-viewer-d01b178cfd69).
   const engine = service("engine", {
-    source: image("ghcr.io/elision-labs/queueflow:0.5"),
+    source: image("ghcr.io/elision-labs/queueflow:0.6"),
     domains: [{ domain: "dashboard.demo.queueflow.dev", port: 8000 }],
     env: {
       DATABASE_URL: db.env.DATABASE_URL,
